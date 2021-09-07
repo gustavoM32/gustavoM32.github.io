@@ -1,0 +1,19 @@
+body {
+	background-color: #eeebff;
+	color: #0a2757;
+	font-family: "Arial";
+}
+
+.header {
+	background-color: #080036;
+	color: #eeebff;
+}
+
+.card {
+	background-color: #b8cdff;
+}
+
+.btn {
+	border-color: #91b2ff;
+	background-color: #002aff;
+}
