@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html> 
+	<head>
+		<meta charset="UTF-8">
+		<title>Insert Project Name</title> 
+		<style>
+			p {
+				position: fixed;
+				top: 0px;
+				left: 0px;
+				bottom: 0px;
+				right: 0px;
+				margin: 0px;
+			}
+		</style>
+</head>
+	<body>
+		<p>
+		<canvas id="mycanvas"></canvas> 
+		</p>
+</body>
+<script src="https://cdn.jsdelivr.net/processing.js/1.4.8/processing.min.js"></script>
+	<script>
+		var sketchProc = function(processingInstance) {
+			with (processingInstance) {
+				frameRate(30);
+				background(255, 255, 255);
+				size(window.innerWidth, window.innerHeight);
+				//window.onresize = function() {size(window.innerWidth, window.innerHeight);} // Dinamic resizing
+				
+<!-- Program Code Start -->
+    
+	
+	/**
+		A colisão não será detectada são for resultante de outra colisão:
+		Para evitar isso é possível fazer uma reverificação de colisão após cada colisão (a reverificação é feita uma vez por frame,
+		no novo método ela seria por colisão, pois são momentos de mudança de velocidades de objetos; um método mais eficiente seria
+		aquele que verificasse colisões em todos os momentos de mudança de velocidade possíveis);
+		
+		Construção do frame:
+			1. Detectar todas as colisões;
+			2. Selecionar a próxima que for acontecer antes do início do próximo frame;
+			3. Atualizar a posição de todos os objetos de acordo com a fração de frame que passou para a colisão obtida em 2;
+			3. Aplicar os efeitos da colisão obtida em 2 nas velocidades dos objetos envolvidos;
+			4. Voltar para o passo 2 até que não exista colisão que vá acontecer antes do início do próximo frame;
+			5. Atualizar a posição de todos os objetos de acordo com a fração de frame restante para o fim desse;
+			6. Desenhar todos os objetos;
+	*/
+	ellipseMode(RADIUS);
+	colorMode(HSB, 360, 100, 100, 100);
+	textAlign(CENTER, CENTER);
+	
+	var restitutionCoef = 1;
+	
+	var addVectors = function(vector1, vector2) {
+		if (vector1.length == vector2.length && vector1 !== undefined) {
+			var result = [];
+			for (var i = 0; i < vector1.length; i++) {
+				result[i] = vector1[i] + vector2[i];
+			}
+			return result;
+		}
+		return console.log("Invalid Vectors");
+	};
+	
+	var subtractVectors = function(vector1, vector2) {
+		return addVectors(vector1, scaleVector(vector2, -1));
+	};
+
+	var scaleVector = function(vector, scalar) {
+		if (vector !== undefined) {
+			var result = [];
+			for (var i = 0; i < vector.length; i++) {
+				result[i] = vector[i]*scalar;
+			}
+			return result;
+		}
+		return console.log("Invalid Vector");
+	}; 
+	
+	var getMagnitude = function(vector) {
+		if (vector == undefined) {
+			return console.log("Invalid Vector");
+		};
+		var result = 0;
+		for (var i = 0; i < vector.length; i++) {
+			result += sq(vector[i]);
+		}
+		return sqrt(result);
+	};
+	
+	var dotProduct = function(vector1, vector2) {
+		if (vector1 == undefined || vector2 == undefined || vector1.length !== vector2.length) {
+			return console.log("Invalid Vectors");
+		};
+		var result = 0;
+		for (var i = 0; i < vector1.length; i++) {
+			result += vector1[i] * vector2[i];
+		};
+		return result;
+	};
+		
+	var Circle = function(x, y, radius) {
+		this.pos = [x, y];
+		this.vel = [0, 0];
+		this.acc = [0, 0];
+		this.radius = radius;
+		this.mass = radius*radius*PI/1000;
+		this.color = color(random()*360, 100, 100);
+	};
+	Circle.prototype.draw = function() {
+		//noFill();
+		fill(this.color);
+		ellipse(this.pos[0], this.pos[1], this.radius, this.radius);
+	};
+	// Non-realistic model, move stats are updated in a per frame base and not continuouslys
+	Circle.prototype.updateVelocity = function() {
+		this.vel = addVectors(this.vel, this.acc);
+	};
+	Circle.prototype.updatePosition = function(time) {
+		this.pos = addVectors(this.pos, scaleVector(this.vel, time));
+		/*if (this.pos[0] < 0) {this.pos[0] = width;}
+		if (this.pos[0] > width) {this.pos[0] = 0;}
+		if (this.pos[1] < 0) {this.pos[1] = height;}
+		if (this.pos[1] > height) {this.pos[1] = 0;}*/
+	};
+		
+	var circles = [];
+	
+	/*circles.push(new Circle(width*0.4, height*0.4, 10));
+	circles.push(new Circle(width*0.4-20-50, height*0.4 + 50, 10));
+	circles.push(new Circle(width*0.6, height*0.4, 10));
+	circles.push(new Circle(width*0.8, height*0.9, 10));
+	circles[0].vel = [0, 0];
+	circles[1].vel = [1, -1];
+	circles[2].vel = [0, 0];
+	circles[3].vel = [0, -5];*/
+	
+	/*var k = 3;
+	for (var i = 0; i < 50; i++) {
+		circles.push(new Circle(random()*width, random()*height, random(50, 100)));
+		circles[i].vel = [random(-k, k), random(-k, k)];
+	}*/
+  
+	circles.push(new Circle(width*0.5, -100000, 100000));
+	circles[0].vel = [0, 0];
+	circles.push(new Circle(width*0.5, height+100000, 100000));
+	circles[1].vel = [0, 0];
+	circles.push(new Circle(-100000, height*0.5, 100000));
+	circles[2].vel = [0, 0];
+	circles.push(new Circle(width+100000, height*0.5, 100000));
+	circles[3].vel = [0, 0];
+  
+	var collisionWarning = function() {
+		textSize(90);
+		fill(120, 100, 50);
+		text("Hit!", width*0.5, height*0.2);
+	};
+	
+	var collisionSurface = function(obj1, obj2) {
+		for (var i = 0; i < width; i++) {
+			point(i, ((obj2.pos[1] - obj1.pos[1]) / (obj2.pos[0] - obj1.pos[0]))*(i - obj1.pos[0]) + obj1.pos[1]);
+		}
+		
+	};
+	
+	// Returns the number of frames to collision
+	var detectCollision = function(obj1, obj2) {
+		var distVec = subtractVectors(obj2.pos, obj1.pos);
+		var minDist = obj1.radius + obj2.radius;
+		var apprVelVec = subtractVectors(obj2.vel, obj1.vel);
+		var apprVelMagSq = sq(apprVelVec[0]) + sq(apprVelVec[1]);
+		
+		var delta = apprVelMagSq * sq(minDist) - sq(distVec[0] * apprVelVec[1] - distVec[1] * apprVelVec[0]);
+		
+		if (delta < 0) {
+			return -1;
+		}
+		
+		var resultTime = -1*(distVec[0] * apprVelVec[0] + distVec[1] * apprVelVec[1] + sqrt(delta)) / apprVelMagSq - 1;
+		
+		if (resultTime < 0) {
+			return -1;
+		}
+	
+		return resultTime;
+	}; 
+	
+	var getAfterCollisionVels = function(obj1, obj2) {
+		// Coefficient
+		var restitution = restitutionCoef;
+		// Angle of the direction of the line formed by connect the centers
+		var colAngle = atan2(obj2.pos[1] - obj1.pos[1], obj2.pos[0] - obj1.pos[0]);
+		// Normalize the angle to be between 0 and pi
+		colAngle = colAngle < 0 ? PI + colAngle : colAngle;
+		
+		// Normal to the surfaces' unit vector
+		var normal = [cos(colAngle), sin(colAngle)];
+		//var normal = [cos(colAngle), sin(colAngle)];
+		
+		//console.log("Normal", normal);
+		
+		//console.log("A");
+		//console.log("Pre-velocity", obj1.vel, obj2.vel);
+		
+		var v1AComp = dotProduct(obj1.vel, normal);
+		//console.log(obj1.vel + " . " + normal + " = " + v1AComp);
+		var v2AComp = dotProduct(obj2.vel, normal);
+		//console.log(obj2.vel + " . " + normal + " = " + v2AComp);
+		
+		//console.log("Pre-velocity component", v1AComp, v2AComp);
+
+		var p1AComp = v1AComp*obj1.mass;
+		var p2AComp = v2AComp*obj2.mass;
+
+		//console.log("Momentum component", p1AComp, p2AComp);
+		
+		var v1BComp = (p1AComp + p2AComp + obj2.mass * restitution * (v2AComp - v1AComp)) / (obj1.mass + obj2.mass);
+		var v2BComp = (p1AComp + p2AComp + obj1.mass * restitution * (v1AComp - v2AComp)) / (obj1.mass + obj2.mass);
+		
+		//console.log("Post-velocity component", v1BComp, v2BComp);
+		
+		velB1 = addVectors(obj1.vel, scaleVector(normal, v1BComp - v1AComp));
+		velB2 = addVectors(obj2.vel, scaleVector(normal, v2BComp - v2AComp));
+		
+		//console.log("B");
+		//console.log(velB1, velB2);
+		//noLoop();
+		
+		return [velB1, velB2];
+	};
+	
+	var getNextCollision = function() {
+		var objects = [];
+		var times = [];
+		for (var i = 0; i < circles.length; i++) {
+			for (var j = i + 1; j < circles.length; j++) {
+				var timeToCollision = detectCollision(circles[i], circles[j]);
+				if (timeToCollision >= 0 && timeToCollision < 1) {
+					objects.push([i, j]);
+					times.push(timeToCollision);
+				}
+			}
+		}
+		
+		var timesSorted = times.slice().sort();
+		
+		if (timesSorted.length !== 0) {
+			var toCollide = objects[times.indexOf(timesSorted[0])];
+			return [timesSorted[0], toCollide[0], toCollide[1]];
+		}
+		else {
+			return -1;
+		}
+	};
+	
+	var frameUpdate = function() {
+		// 1. Update all velocities
+		for (var i = 0; i < circles.length; i++) {
+			circles[i].updateVelocity();
+		}
+		var frameTime = 0;
+		while (true) {
+			// 2. Check next collision
+			var nextCollision = getNextCollision();
+			if (nextCollision === -1 || nextCollision[0] >= 1) {
+				break;
+			}
+			var nextCollisionVels = getAfterCollisionVels(circles[nextCollision[1]], circles[nextCollision[2]]);
+			// 3. Update all positions to collision time
+			for (var i = 0; i < circles.length; i++) {
+				circles[i].updatePosition(nextCollision[0] - frameTime);
+			}
+			frameTime = nextCollision[0];
+			// 4. Change velocity of objects that collided
+			circles[nextCollision[1]].vel = nextCollisionVels[0];
+			circles[nextCollision[2]].vel = nextCollisionVels[1];
+		}
+		// 5. Update all positions and draw
+		for (var i = 0; i < circles.length; i++) {
+			circles[i].updatePosition(1 - frameTime);
+			circles[i].draw();
+		}
+	};
+	
+	var getKinecticEnergy = function() {
+	var result = 0;
+	for (var i = 4; i < circles.length; i++) {
+		result += circles[i].mass*sq(getMagnitude(circles[i].vel));
+	}
+		return result;
+	};
+	
+	
+	draw = function() {
+		background(0, 0, 100);
+		frameUpdate();
+		//console.log("time: " + detectCollision(circles[0], circles[1]));
+		var kinectic = getKinecticEnergy();
+		//console.log("Total Kinectic Energy", kinectic.toFixed(3));
+		//console.log("Mean Kinectic Energy", (kinectic/circles.length).toFixed(3));
+	}
+	
+	
+	var pressed = [];
+	var released = [];
+	var created;
+	var multiplier = 0.01;
+	
+	mousePressed = function() {
+		pressed = [mouseX, mouseY];
+		created = circles.push(new Circle(mouseX, mouseY, 10)) - 1;
+	};
+		
+	mouseReleased = function() {
+		if (mouseButton == LEFT) {
+			released = [mouseX, mouseY];
+			circles[created].vel = scaleVector(subtractVectors(released, pressed), multiplier);
+		}
+		if (mouseButton == RIGHT) {
+			released = [mouseX, mouseY];
+			circles[created].vel = scaleVector(subtractVectors(released, pressed), multiplier*5);
+		}
+	};
+  
+	keyPressed = function() {
+		if (key.toString() == "q") {
+			restitutionCoef = constrain(restitutionCoef-0.01, 0, 1);
+			console.log("restitutionCoef", restitutionCoef);
+		}
+		if (key.toString() == "w") {
+			restitutionCoef = constrain(restitutionCoef+0.01, 0, 1);
+			console.log("restitutionCoef", restitutionCoef);
+		}
+		if (key.toString() == "a") {
+			multiplier = max(multiplier-0.01, 0);
+			console.log("multiplier", multiplier);
+		}
+		if (key.toString() == "s") {
+			multiplier = max(multiplier+0.01, 0);
+			console.log("multiplier", multiplier);
+		}
+		if (key.toString() == "p") {
+			noLoop();
+		}
+		if (key.toString() == "u") {
+			loop();
+		}
+  };
+	
+	
+<!-- Program Code End -->
+
+    }};
+
+		// Get the canvas that Processing-js will use
+		var canvas = document.getElementById("mycanvas"); 
+		// Pass the function sketchProc (defined in myCode.js) to Processing's constructor.
+		var processingInstance = new Processing(canvas, sketchProc); 
+	</script>
+</html>

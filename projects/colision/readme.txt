@@ -1,0 +1,1 @@
+Tentativa de simulação exata de colisões

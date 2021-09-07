@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<!-- This is based on DillingerLee's great template here:
+https://github.com/Team-Code/KA_Offline -->
+<html> 
+ <head>
+    <title>Processing.JS inside Webpages: Template</title> 
+	<style>
+		p {
+			position: fixed;
+			top: 0px;
+			left: 0px;
+			bottom: 0px;
+			right: 0px;
+			margin: 0px;
+		}
+	</style>
+</head>
+ <body>
+    <p>
+	<!--This draws the Canvas on the webpage -->
+      <canvas id="mycanvas"></canvas> 
+    </p>
+ </body>
+ 
+ <!-- Run all the JavaScript stuff -->
+ <!-- Include the processing.js library -->
+ <!-- See https://khanacademy.zendesk.com/hc/en-us/articles/202260404-What-parts-of-ProcessingJS-does-Khan-Academy-support- for differences -->
+<script src="https://cdn.jsdelivr.net/processing.js/1.4.8/processing.min.js"></script> 
+ <script>
+    var sketchProc = function(processingInstance) {
+		with (processingInstance) {
+			frameRate(60);
+			background(255, 255, 255);
+			size(window.innerWidth, window.innerHeight);
+			//window.onresize = function() {size(window.innerWidth, window.innerHeight);}
+        
+        // ProgramCodeStartsHere
+var versionNum = "0.3";
+var version = function() {
+    textSize(height/25);
+    textAlign(LEFT);
+    fill(0, 0, 0);
+    text(versionNum, 5, height/25);
+};
+/**
+Produzir um jogo da velha. Características:
+* Bolinhas e x's aparecem alternadamente com cada clique em um quadrado vazio; FEITO
+* Botão para desfazer última jogada; FEITO
+* Página inicial (opção para definir nome de jogadores); conhecimento de html necessário...
+* Mensagem quando a rodada acabar; FEITO
+* Pontuação; FEITO
+* Botão para resetar pontuação; FEITO
+* Botão para definir nome de jogadores; conhecimento de html necessário...
+* Indicador de vez; FEITO
+*/
+
+// Pre-functions
+var getColor = function(color, component) {
+    var N = color;
+    var r, red, g, green, b, blue;
+    b = 256 + (N % 256);
+    g = 255 + (((N - (b - 256))/256) % 256);
+    r = 255 + (((N - (g - 255)*256 - (b - 256))/(256*256)) % 256);
+    if (component === 1) {return r;}
+    else if (component === 2) {return g;}
+    else if (component === 3) {return b;}
+};
+var rectCheck = function(x, y, rect1, rect2, rect3, rect4, rectMode) {
+	var hor1, hor2, ver1, ver2;
+	if (rectMode === CENTER) {
+		hor1 = rect1 + rect3/2;
+		hor2 = rect1 - rect3/2;
+		ver1 = rect2 + rect4/2;
+		ver2 = rect2 - rect4/2;
+	}
+	else if (rectMode === CORNER) {
+		hor1 = rect1 + rect3;
+		hor2 = rect1;
+		ver1 = rect2 + rect4;
+		ver2 = rect2;
+	}
+	else if (rectMode === CORNERS) {
+		hor1 = rect1;
+		hor2 = rect3;
+		ver1 = rect2;
+		ver2 = rect4;
+	}
+	else if (rectMode === RADIUS) {
+		hor1 = rect1 + rect3;
+		hor2 = rect1 - rect3;
+		ver1 = rect2 + rect4;
+		ver2 = rect2 - rect4;
+	}
+    return (x < max(hor1, hor2) && x > min(hor1, hor2) && y < max(ver1, ver2) && y > min(ver1, ver2));
+};
+var Button = function(x, y, h, fillColor, buttonText, buttonTextFont, textColor) {
+    this.x = x;
+    this.y = y;
+    this.h = h;
+    textSize(this.h);
+    this.text = buttonText;
+	this.buttonTextFont = buttonTextFont;
+    this.w = textWidth(this.text);
+    this.textColor = textColor;
+    this.fillColor = fillColor;
+	this.fillColorR = getColor(this.fillColor, 1);
+	this.fillColorG = getColor(this.fillColor, 2);
+	this.fillColorB = getColor(this.fillColor, 3);
+    this.outlineColor = color(this.fillColorR*0.3, this.fillColorG*0.3, this.fillColorB*0.3);
+    Button.prototype.draw = function() {
+        stroke(this.outlineColor);
+        strokeWeight(h/15);
+        fill(this.fillColor);
+        rectMode(CENTER);
+        rect(this.x, this.y, this.w, this.h, (this.h)/3);
+        fill(this.textColor);
+		textFont(createFont(this.buttonTextFont));
+        textAlign(CENTER, CENTER);
+        textSize(this.h*0.8);
+        text(this.text, this.x, this.y);
+    };
+	Button.prototype.pressCheck = function() {
+		return (rectCheck(mouseX, mouseY, this.x, this.y, this.w, this.h, CENTER));
+	};
+	Button.prototype.pressed = function() {
+		this.fillColor = color(this.fillColorR*0.5, this.fillColorG*0.5, this.fillColorB*0.5);
+	};
+	Button.prototype.released = function() {
+		this.fillColor = color(this.fillColorR, this.fillColorG, this.fillColorB);
+	};
+};
+
+// Declare variables
+var oPlayer = "Jogador 1",
+	oPoints = 0,
+	xPlayer = "Jogador 2",
+	xPoints = 0;
+
+// Objects model
+var GameBoard = function(x, y, size) {
+    this.x = x;
+    this.y = y;
+    this.size = size;
+    this.nextMove = 0;
+    this.filledSquares = [-1, -1, -1, -1, -1, -1, -1, -1, -1];
+    this.moveOrder = [];
+    this.isActive = true;
+    this.winPosition = 0;
+	this.whoWon;
+    GameBoard.prototype.draw = function() {
+		this.x = width/2;
+		this.y = height/2;
+        stroke(0, 0, 0);
+        strokeWeight(this.size/20);
+        line(this.x - this.size/6, this.y - this.size/2, this.x - this.size/6, this.y + this.size/2);
+        line(this.x + this.size/6, this.y - this.size/2, this.x + this.size/6, this.y + this.size/2);
+        line(this.x - this.size/2, this.y - this.size/6, this.x + this.size/2, this.y - this.size/6);
+        line(this.x - this.size/2, this.y + this.size/6, this.x + this.size/2, this.y + this.size/6);
+        this.squares();
+        if (this.isActive === false && this.whoWon !== undefined) {
+            this.winTrace();
+        }
+    };
+    GameBoard.prototype.squares = function() {
+        for (var i = 0; i < this.filledSquares.length; i++) {
+            if(this.filledSquares[i] !== -1) {
+                if (this.filledSquares[i][0] === 0) {
+                    this.oMove(this.filledSquares[i][1], this.filledSquares[i][2], this.size/5);
+                }
+                else {
+                    this.xMove(this.filledSquares[i][1], this.filledSquares[i][2], this.size/5);
+                }
+            }
+        }
+    };
+    GameBoard.prototype.oMove = function(x, y, size) {
+        stroke(0, 0, 100);
+        noFill();
+        ellipse(x, y, size, size);
+    };
+    GameBoard.prototype.xMove = function(x, y, size) {
+        stroke(100, 0, 0);
+        line(x - size/2, y - size/2, x + size/2, y + size/2);
+        line(x - size/2, y + size/2, x + size/2, y - size/2);
+    };
+    GameBoard.prototype.detectSquare = function() {
+        for (var i = 0; i < 3; i++) {
+            for (var j = 0; j < 3; j++) {
+                if (rectCheck(mouseX, mouseY, this.x + (i-1)*this.size/3, this.y + (j-1)*this.size/3, this.size/3, this.size/3, CENTER) && this.filledSquares[i+3*j] === -1 && this.isActive === true) {
+                   this.filledSquares[i+3*j] = [this.nextMove, this.x + (i-1)*this.size/3, this.y + (j-1)*this.size/3];
+                   this.moveOrder.push(i+3*j);
+                   this.nextMove = (this.nextMove + 1) % 2;
+                   this.winCheck();
+                }
+            }
+        }
+    };
+    GameBoard.prototype.winCheck = function() {
+        this.winConditions = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+        for (var k = 0; k < 2; k++) {
+            for (var i = 0; i < 8; i++) {
+                if (this.filledSquares[this.winConditions[i][0]][0] === k &&
+                    this.filledSquares[this.winConditions[i][1]][0] === k &&
+                    this.filledSquares[this.winConditions[i][2]][0] === k
+					) {
+                    this.isActive = false;
+                    this.winPosition = this.winConditions[i];
+					if (k === 0) {oPoints++;}
+					else if (k === 1) {xPoints++;}
+					this.whoWon = k;
+                    return;
+                }
+            }
+        }
+		if (this.moveOrder.length === 9) {this.isActive = false; return;};
+    };
+    GameBoard.prototype.winTrace = function() {
+        var startLineX = this.winPosition[0] % 3;
+        var startLineY = (this.winPosition[0] - this.winPosition[0] % 3)/3;
+        var endLineX = this.winPosition[2] % 3;
+        var endLineY = (this.winPosition[2] - this.winPosition[2] % 3)/3;
+        stroke(255, 0, 0);
+        line(this.x + (startLineX-1)*this.size/3, this.y + (startLineY-1)*this.size/3, this.x + (endLineX-1)*this.size/3, this.y + (endLineY-1)*this.size/3);
+    };
+};
+
+var drawPontuation = function() {
+	strokeWeight(height/100);
+	textSize(height/12);
+	textAlign(CENTER, CENTER);
+	gameBoard.oMove(width*3/20, height*19/20, height/25);
+	gameBoard.xMove(width*13/20, height*19/20, height/25);
+	textAlign(RIGHT, CENTER);
+	text(oPoints, width*2/20, height*19/20);
+	text(xPoints, width*12/20, height*19/20);
+	textSize(height/20);
+	textAlign(LEFT, CENTER);
+	text(oPlayer, width*4/20, height*19/20);
+	text(xPlayer, width*14/20, height*19/20);
+};
+
+var overBoardText = function() {
+	textSize(height/12);
+	textFont(createFont("sans"));
+	textAlign(RIGHT, CENTER);
+	if (gameBoard.isActive) {text("Jogada de ", width*6/10, height/10);}
+	else if (gameBoard.isActive === false && gameBoard.whoWon !== undefined) {text("Vitória de ", width*6/10, height/10);}
+	else {textSize(height/8); textAlign(CENTER, CENTER); text("Velha", width/2, height/10);}
+    if ((gameBoard.nextMove === 0 && gameBoard.isActive) || (gameBoard.whoWon === 0 && gameBoard.isActive === false)) {
+        gameBoard.oMove(width*2/3, height/10, gameBoard.size/5);
+    }
+    if ((gameBoard.nextMove === 1 && gameBoard.isActive) || (gameBoard.whoWon === 1 && gameBoard.isActive === false)) {
+        gameBoard.xMove(width*2/3, height/10, gameBoard.size/5);
+    }
+};
+// Creating objects
+var gameBoard = new GameBoard(width/2, height/2, height/2);
+
+var clearButton = new Button (width*35/40, height*2/40, 30, color(157, 95, 173), "Limpar", "times", color(0, 0, 0));
+
+var undoButton = new Button (width*35/40, height*5/40, 30, color(157, 95, 173), "Desfazer", "times", color(0, 0, 0));
+
+var resetButton = new Button (width*35/40, height*8/40, 30, color(157, 95, 173), "Reiniciar", "times", color(0, 0, 0));
+
+var buttonWidths = [undoButton.w, clearButton.w, resetButton.w]
+buttonWidths.sort(function(a, b) {return a - b;});
+
+undoButton.w = buttonWidths[buttonWidths.length - 1];
+clearButton.w = undoButton.w;
+resetButton.w = undoButton.w;
+
+// Draw function
+draw = function() {
+    background(218, 204, 219);
+    gameBoard.draw();
+	overBoardText();
+	drawPontuation();
+    clearButton.draw();
+	undoButton.draw();
+	resetButton.draw();
+    version();
+};
+
+mousePressed = function() {
+    gameBoard.detectSquare();
+    if (clearButton.pressCheck()) {
+        clearButton.pressed();
+        gameBoard = new GameBoard(width/2, height/2, height/2);
+    }
+    if (undoButton.pressCheck()) {
+        undoButton.pressed();
+		if (gameBoard.isActive && gameBoard.moveOrder.length > 0) {
+			gameBoard.filledSquares[gameBoard.moveOrder[gameBoard.moveOrder.length - 1]] = -1;
+			gameBoard.moveOrder.pop();
+			gameBoard.nextMove = (gameBoard.nextMove + 1) % 2;
+		}
+    }
+	if (resetButton.pressCheck()) {
+		resetButton.pressed();
+		oPoints = 0;
+		xPoints = 0;
+		gameBoard = new GameBoard(width/2, height/2, height/2);
+	}
+};
+
+mouseReleased = function() {
+    clearButton.released();
+    undoButton.released();
+	resetButton.released();
+};
+
+		// ProgramCodeFinishesHere
+    }};
+
+    // Get the canvas that Processing-js will use
+    var canvas = document.getElementById("mycanvas"); 
+    // Pass the function sketchProc (defined in myCode.js) to Processing's constructor.
+    var processingInstance = new Processing(canvas, sketchProc); 
+ </script>
+
+</html>

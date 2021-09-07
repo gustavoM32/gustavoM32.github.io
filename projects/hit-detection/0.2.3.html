@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<!-- This is based on DillingerLee's great template here:
+https://github.com/Team-Code/KA_Offline -->
+<html> 
+ <head>
+    <title>Processing.JS inside Webpages: Template</title> 
+	<style>
+		p {
+			position: fixed;
+			top: 0px;
+			left: 0px;
+			bottom: 0px;
+			right: 0px;
+			margin: 0px;
+		}
+	</style>
+</head>
+ <body>
+    <p>
+	<!--This draws the Canvas on the webpage -->
+      <canvas id="mycanvas"></canvas> 
+    </p>
+ </body>
+ 
+ <!-- Run all the JavaScript stuff -->
+ <!-- Include the processing.js library -->
+ <!-- See https://khanacademy.zendesk.com/hc/en-us/articles/202260404-What-parts-of-ProcessingJS-does-Khan-Academy-support- for differences -->
+<script src="https://cdn.jsdelivr.net/processing.js/1.4.8/processing.min.js"></script> 
+ <script>
+    var sketchProc = function(processingInstance) {
+		with (processingInstance) {
+			frameRate(60);
+			background(255, 255, 255);
+			size(window.innerWidth, window.innerHeight);
+			//window.onresize = function() {size(window.innerWidth, window.innerHeight);} // Dinamic resizing
+        
+        // ProgramCodeStartsHere
+var versionNum = "0.2.3";
+var version = function() {
+    textSize(height/25);
+    textAlign(RIGHT);
+    fill(0, 0, 0);
+    text(versionNum, width - 10, height - 10);
+};
+/**
+To do list:
+Interface:
+    * Organize game code into a function and make possible to restart outside khanAcademy, reate a start screen; DONE
+    * Create a game over screen; DONE
+        * Fix the crash when two bullets leave the screen at the same time; DONE
+        * Organize the code according to the fix; DONE
+    * Create a stats page; DONE
+        * ORGANIZE CODING STYLE (PRE-CREATED FUNCTIONS); DONE
+		* Use object inheritance for some repeated code in objects; DONE
+	* Create a language system; DONE
+    * Create a pause button;
+	* Create a language chooser;
+    * Create a upgrade page (without upgrades yet);
+Enemy enhancement:
+    * Randomize enemy speed;
+    * Randomize enemy amount;
+    * Create new enemies
+    * Create a wave system;
+*/
+
+// Pre-created functions
+
+var getColor = function(color, component) {
+    var N = color;
+    var r, red, g, green, b, blue;
+    b = 256 + (N % 256);
+    g = 255 + (((N - (b - 256))/256) % 256);
+    r = 255 + (((N - (g - 255)*256 - (b - 256))/(256*256)) % 256);
+    if (component === 1) {return r;}
+    else if (component === 2) {return g;}
+    else if (component === 3) {return b;}
+};
+var rectCheck = function(x, y, rect1, rect2, rect3, rect4, rectMode) {
+	var hor1, hor2, ver1, ver2;
+	if (rectMode === CENTER) {
+		hor1 = rect1 + rect3/2;
+		hor2 = rect1 - rect3/2;
+		ver1 = rect2 + rect4/2;
+		ver2 = rect2 - rect4/2;
+	}
+	else if (rectMode === CORNER) {
+		hor1 = rect1 + rect3;
+		hor2 = rect1;
+		ver1 = rect2 + rect4;
+		ver2 = rect2;
+	}
+	else if (rectMode === CORNERS) {
+		hor1 = rect1;
+		hor2 = rect3;
+		ver1 = rect2;
+		ver2 = rect4;
+	}
+	else if (rectMode === RADIUS) {
+		hor1 = rect1 + rect3;
+		hor2 = rect1 - rect3;
+		ver1 = rect2 + rect4;
+		ver2 = rect2 - rect4;
+	}
+    return (x < max(hor1, hor2) && x > min(hor1, hor2) && y < max(ver1, ver2) && y > min(ver1, ver2));
+};
+var Button = function(x, y, h, fillColor, buttonText, buttonTextFont, textColor) {
+    this.x = x;
+    this.y = y;
+    this.h = h;
+    textSize(this.h);
+    this.text = buttonText;
+	this.buttonTextFont = buttonTextFont;
+    this.w = textWidth(this.text);
+    this.textColor = textColor;
+    this.fillColor = fillColor;
+	this.fillColorR = getColor(this.fillColor, 1);
+	this.fillColorG = getColor(this.fillColor, 2);
+	this.fillColorB = getColor(this.fillColor, 3);
+    this.outlineColor = color(this.fillColorR*0.3, this.fillColorG*0.3, this.fillColorB*0.3);
+    Button.prototype.draw = function() {
+        stroke(this.outlineColor);
+        strokeWeight(h/15);
+        fill(this.fillColor);
+        rectMode(CENTER);
+        rect(this.x, this.y, this.w, this.h, (this.h)/3);
+        fill(this.textColor);
+		textFont(createFont(this.buttonTextFont));
+        textAlign(CENTER, CENTER);
+        textSize(this.h*0.8);
+        text(this.text, this.x, this.y);
+    };
+	Button.prototype.pressCheck = function() {
+		return (rectCheck(mouseX, mouseY, this.x, this.y, this.w, this.h, CENTER));
+	};
+	Button.prototype.pressed = function() {
+		this.fillColor = color(this.fillColorR*0.5, this.fillColorG*0.5, this.fillColorB*0.5);
+	};
+	Button.prototype.released = function() {
+		this.fillColor = color(this.fillColorR, this.fillColorG, this.fillColorB);
+	};
+};
+
+// Reset function
+var resetFunctions = function() {
+    mousePressed = function() {};
+    mouseReleased = function() {};
+    draw = function() {};
+};
+
+// Declaring variables
+var resetAndRun;
+var mainGame;
+var startScreen;
+var gameOverScreen;
+var localization;
+var lang = 0;
+
+localization = {
+		playButton: ["Play", "Jogar"][lang],
+		hitText: ["Hit!", "Acerto!"][lang],
+		statsButton: ["Stats", "Estatísticas"][lang],
+		infoLinesShots: ["Shots", "Tiros"][lang],
+		infoLinesHits: ["Hits", "Acertos"][lang],
+		infoLinesEff: ["Efficiency", "Eficiência"][lang],
+		infoLinesEneKill: ["Enemies Killed", "Inimigos mortos"][lang],
+		infoLinesEneLost: ["Enemies Lost", "Inimigos perdidos"][lang],
+		gameOverText: ["GAME OVER", "FIM DE JOGO"][lang],
+		tryAgainButton: ["Try again", "Tentar novamente"][lang],
+	};
+
+startScreen = function() {
+    var playButton = new Button(width/2, height/2, 51, color(100, 182, 212), localization.playButton, "Segoe Print", color(0, 0, 0));
+    
+    mousePressed = function() {
+        if (playButton.pressCheck()) {
+            playButton.pressed();
+        }
+    };
+
+    mouseReleased = function() {
+        playButton.released();
+        if (playButton.pressCheck()) {
+            resetAndRun(mainGame);
+        }
+    };
+
+    draw = function() {
+        background(205, 233, 247);
+        playButton.draw();
+        version();
+    };
+};
+
+mainGame = function() {
+    // Declaring variables
+    var tower;
+    var towerExecAll;
+    var bullet = [];
+    var bulletExecAll;
+    var entity = [];
+    var entityExecAll;
+    var entityCreate;
+    var counters;
+    var cornerInfo;
+    var drawHitText = false;
+    var hitText;
+    var start;
+    var hitsShotsPerc;
+    var statsPage;
+    
+	var movingObject = function(x, y, radius, velocity) {
+		this.x = x;
+		this.y = y;
+		this.radius = radius;
+		this.velocity = velocity;
+	};
+	movingObject.prototype.setTarget = function(targetX, targetY) {
+		this.targetX = targetX;
+		this.targetY = targetY;
+		this.pathAngularCoef = (this.targetY - this.y)/(this.targetX - this.x);
+		if (this.targetX === this.x) {
+			if (this.targetY > this.y) {
+				this.velocityY = this.velocity;
+			}
+			else if (this.targetY < this.y) {
+				this.velocityY = -this.velocity;
+			}
+		}
+		else {
+			this.pathAngularCoef = (this.targetY - this.y)/(this.targetX - this.x);
+			// Signal correction - Negative
+			if (this.targetX < this.x) {
+				this.velocityX = -sqrt(sq(this.velocity)/(1+sq(this.pathAngularCoef))); // velocityX is based on the shot velocity and the path slope
+				this.velocityY = this.pathAngularCoef*this.velocityX; // velocityY uses the velocityX to set the right direction
+			}
+			// Signal correction - Positive
+			else {
+				this.velocityX = sqrt(sq(this.velocity)/(1+sq(this.pathAngularCoef)));
+				this.velocityY = this.pathAngularCoef*this.velocityX;
+			}
+		}
+	};
+	
+    // Tower object type
+    var Tower = function(x, y, side, startHealth) {
+		movingObject.call(this, x, y, null, null);
+        this.side = side;
+        this.wasJustHit = false;
+        this.startHealth = startHealth;
+        this.health = startHealth;
+        this.color = color(255*(this.health/this.startHealth), 0, 0);
+        // Draws tower
+        Tower.prototype.draw = function() {
+            noStroke();
+            this.color = color(255*(this.health/this.startHealth), 0, 0);
+            fill (this.color);
+            rectMode(CENTER);
+            rect(this.x, this.y, this.side, this.side);
+            fill (66, 0, 0);
+            rect(this.x, this.y, 3, 3);
+        };
+        Tower.prototype.actions = function() {
+            if (this.wasJustHit === true) {
+                counters.towerHitCount++;            
+                this.wasJustHit = false;
+            }
+            if (this.health <= 0) {
+                resetAndRun(gameOverScreen);
+            }
+        };
+    };
+    
+    // Exec functions for all existent towers
+    towerExecAll = function() {
+        tower.draw();
+        tower.actions();
+    };
+    
+    // Bullet object type
+    var Bullet = function (x, y, radius, velocity, fire) {
+		movingObject.call(this, x, y, radius, velocity);
+        this.wasJustFired = fire; // Was this bullet just fired?
+        this.wasFired = false;  // Was this bullet fired?
+        this.hasHit = false; // Has this bullet hit the entity?
+        // Target coordinates
+        this.targetX = width/2;
+        this.targetY = height/2;
+        this.pathAngularCoef = 0;
+        this.distBulEnt = [];
+        this.surfaceDistance = [];
+	};
+	Bullet.prototype = Object.create(movingObject.prototype);
+	Bullet.prototype.draw = function() {
+		// Draw image
+		noStroke();
+		fill(74, 74, 74);
+		ellipse(this.x, this.y, this.radius*2, this.radius*2);
+	};
+	Bullet.prototype.actions = function() {
+		// Firing conditions
+		if (this.wasJustFired === true) {
+			this.setTarget(mouseX, mouseY);
+			counters.towerShots++;
+			this.wasFired = true;
+			this.wasJustFired = false;
+		}
+		if (this.wasFired === true) {
+			// Moves the bullet
+			this.x += this.velocityX;
+			this.y += this.velocityY;
+		}
+	};
+	Bullet.prototype.isKilled = function() {
+		// If it gets off the screen
+		if (this.x >= width + this.radius || this.x <= -this.radius || this.y >= height + this.radius || this.y <= -this.radius ) {
+			return true;
+		}
+		// Check if it hit an entity
+		for (var i = 0; i < entity.length; i++) {
+			this.distBulEnt[i] = dist(this.x, this.y, entity[i].x, entity[i].y);
+			this.surfaceDistance[i] = this.distBulEnt[i] - (entity[i].radius + this.radius);
+			if (this.surfaceDistance[i] < 0 && this.hasHit === false) {
+				entity[i].wasJustHit = true;
+				entity[i].health -= 10;
+				this.hasHit = true;
+			}
+			if (this.surfaceDistance[i] < -2*this.radius) {
+				return true;
+			}
+		}
+		if (this.targetY === tower.y) {return true;}
+	};
+	Bullet.prototype.kill = function() {
+		if (this.isKilled()) {
+			bullet.splice(bullet.indexOf(this), 1); // Removes bullet from the bullet array
+		}
+	};
+    
+    // Exec functions for all existent bullets
+	bulletExecAll = function() {
+        for (var i = 0; i < bullet.length; i++) {
+            bullet[i].draw();
+        }
+        for (var i = 0; i < bullet.length; i++) {
+            bullet[i].actions();
+        }
+        for (var i = 0; i < bullet.length; i++) {
+            bullet[i].kill();
+        }
+    };
+    
+    // Entity
+    var Entity = function(radius, velocity, startHealth) {
+		movingObject.call(this, null, null, radius, velocity);
+		this.position();
+        this.wasJustHit = false;
+        this.startHealth = startHealth;
+        this.health = startHealth;
+        this.color = color(0, 255*(this.health/this.startHealth), 0);
+	};
+	Entity.prototype = Object.create(movingObject.prototype);
+	Entity.prototype.position = function() {
+		var a = this.radius;
+		var b = width + this.radius;
+		var c = height + this.radius;
+		var x, y;
+		var i = floor(random(0, 4));
+		if (i === 0) {
+		x = random(-a, b);
+		y = -a;
+		}
+		else if (i === 1) {
+		x = b;
+		y = random(-a, c);
+		}
+		else if (i === 2) {
+		x = random(-a, b);
+		y = c;
+		}
+		else if (i === 3) {
+		x = -a;
+		y = random(-a, c);
+		}
+		this.x = x;
+		this.y = y;
+	};
+	Entity.prototype.draw = function() {
+		noStroke();
+		this.color = color(0, 255*(this.health/this.startHealth), 0);
+		fill (this.color);
+		ellipse(this.x, this.y, this.radius*2, this.radius*2);
+	};
+	Entity.prototype.actions = function() {
+		if (this.wasJustHit === true) {
+			hitText.x = this.x;
+			hitText.y = this.y;
+			counters.entityHitCount++;
+			drawHitText = true;
+			start = millis()/1000;
+			this.wasJustHit = false;
+		}
+		// Moves the entity
+		this.x += this.velocityX;
+		this.y += this.velocityY;
+	};
+	Entity.prototype.isKilled = function() {
+		if (this.targetY === this.y) {return true;}
+		if (rectCheck(this.x, this.y, tower.x, tower.y, tower.side - 2*this.radius, tower.side - 2*this.radius, CENTER)) {
+			tower.wasJustHit = true;
+			tower.health -= this.health;
+			return true;
+		}
+		if (this.health <= 0) {
+			counters.entitiesKilled++;
+			return true;
+		}
+		
+	};
+	Entity.prototype.kill = function() {
+		if (this.isKilled()) {
+			entity.splice(entity.indexOf(this), 1);
+		}
+	};
+
+	// Exec functions for all existent bullets
+	entityExecAll = function() {
+		for (var i = 0; i < entity.length; i++) {
+			entity[i].draw();
+		}
+		for (var i = 0; i < entity.length; i++) {
+			entity[i].setTarget(tower.x, tower.y);
+			entity[i].actions();
+		}
+		for (var i = 0; i < entity.length; i++) {
+			entity[i].kill();
+		}
+		if (entity.length < 1) {entityCreate();}
+	};
+    
+    // Entity object creation function
+    var entityCreate = function() {
+		entity.push(new Entity(20, 1, 100));
+    };
+    
+    // Creates the objects
+    tower = new Tower(width/2, height/2, 100, 1000);
+    entityCreate();
+    
+    // Hit text
+    hitText = function() {
+        if (drawHitText === true) {
+            if (millis()/1000 < start + 0.1) {
+                textAlign(CENTER, CENTER);
+                fill(255, 242, 0);
+                textSize(20);
+                text(localization.hitText, hitText.x, hitText.y);
+            }
+            else {drawHitText = false;}
+        }
+    };
+    
+    counters = {
+        entityHitCount: 0,
+        entitiesKilled: 0,
+        towerShots: 0,
+        towerHitCount: 0
+    };
+    
+    // Stats page
+    var statsButton;
+    var statsWindow;
+    var drawWindow = false;
+    var statsClose;
+    statsButton = new Button(60, 20, 20, color(8, 138, 17), localization.statsButton, "Segoe Print", color(0, 0, 0));
+    statsPage = function() {
+        statsButton.draw();
+        statsButton.drawWindow = function() {
+            if (drawWindow === true) {
+                statsWindow();
+            }
+        };
+        statsWindow = function() {
+            var x, y, w, h, lineWidth = [];
+            x = 10;
+            y = 40;
+            var hitsShotsPerc = function() {
+                if (counters.towerShots > 0) {
+                hitsShotsPerc = counters.entityHitCount*100/counters.towerShots;
+                }
+                else {
+                    hitsShotsPerc = 0;
+                }
+                return hitsShotsPerc;
+            };
+            var infoLines = [
+                localization.infoLinesShots + ": " + counters.towerShots,
+                localization.infoLinesHits + ": " + counters.entityHitCount,
+                localization.infoLinesEff + ": " + hitsShotsPerc().toFixed(2) + "%",
+                localization.infoLinesEneKill + ": " + counters.entitiesKilled,
+                localization.infoLinesEneLost + ": " + counters.towerHitCount
+                ];
+            var info = function() {
+			    var lineWidth = [];
+                fill (0, 0, 0);
+                textAlign(LEFT, TOP);
+                textSize(height/20);
+                text(localization.statsButton, x + 10, y + 10);
+                textSize(height/40);
+                for (var i = 0; i < infoLines.length; i++) {
+                    text(infoLines[i], x + 10, y + height/20 + 20 + (i)*height/30);
+                }
+            };
+			textSize(height/20);
+			lineWidth.push(textWidth(localization.statsButton));
+            textSize(height/40);
+            for (var i = 0; i < infoLines.length; i++) {
+                lineWidth.push(textWidth(infoLines[i]));
+            }
+            lineWidth.sort(function(a, b) {return a - b;});
+            w = lineWidth[lineWidth.length-1] + 20;
+            h = infoLines.length*height/30 + height/20 + 30;
+            fill(57, 153, 25);
+            rectMode(CORNER);
+            strokeWeight(5);
+            stroke(36, 84, 19);
+            rect(x, y, w, h, 15);
+            strokeWeight(1);
+            line(x + w - 25, y + 15, x + w - 15, y + 25);
+            line(x + w - 25, y + 25, x + w - 15, y + 15);
+            info();
+            statsClose = rectCheck(mouseX, mouseY, x + w - 20, y + 20, 20, 20, CENTER);
+        };
+        statsButton.draw();
+        statsButton.drawWindow();
+    };
+    
+    // DEBUG
+    var posPoint = {
+        x: 0,
+        y: 0
+    };
+    var stats = function() {
+        //make bullet slow down when close to the entity
+        var slowBullet = function(x) {
+            if (bullet.length > 0) {
+                if (bullet[0].distBulEnt <= 50 && sqrt(sq(bullet[0].velocityX) + sq(bullet[0].velocityY)) >= bullet[0].velocity) {
+                    bullet[0].velocityX /= x;
+                    bullet[0].velocityY /= x;
+                }
+                if (bullet[0].distBulEnt <= 40 && sqrt(sq(bullet[0].velocityX) + sq(bullet[0].velocityY)) >= bullet[0].velocity/20) {
+                    bullet[0].velocityX /= x;
+                    bullet[0].velocityY /= x;
+                }
+            }
+        };
+        // draws a point in the bullet target position
+        var targetPoint = function() {
+            if (bullet.length > 0) {
+                for (var i = 0; i < bullet.length; i++) {
+                    posPoint.x = bullet[i].targetX;
+                    posPoint.y = bullet[i].targetY;
+                    strokeWeight(5);
+                    stroke(250, 0, 250);
+                    point(posPoint.x, posPoint.y);
+                }
+            }
+        };
+        // entity[0] stats
+        var entity0stats = function() {
+            if (entity.length > 0) {
+                var statsAtt = [
+                    ["entity[0].velocityX", entity[0].velocityX.toFixed(3)],
+                    ["entity[0].velocityY", entity[0].velocityY.toFixed(3)],
+                    //["entity[0].velocity", entity[0].velocity.toFixed(3)],
+                    ["entity[0].x", entity[0].x.toFixed(3)],
+                    ["entity[0].y", entity[0].y.toFixed(3)],
+                    //["entity[0].targetX", entity[0].targetX.toFixed(3)],
+                    //["entity[0].targetY", entity[0].targetY.toFixed(3)],
+                    ["entity[0].radius", entity[0].radius],
+                    ["entity.length", entity.length],
+                ];
+            fill(0, 0, 0);
+            textAlign(LEFT);
+            var size = 15;
+            textSize(size);
+            for (var i = 0; i < statsAtt.length; i += 1) {
+                text(statsAtt[i][0] + " = " + statsAtt[i][1], 10, 400 + (i+1)*size);
+                }
+            }
+        };
+        // some useful stats
+        var somestats = function() {
+            var statsAtt = [
+                ["bullet.length", bullet.length],
+            ];
+        fill(0, 0, 0);
+        textAlign(LEFT);
+        var size = 15;
+        textSize(size);
+        for (var i = 0; i < statsAtt.length; i += 1) {
+            text(statsAtt[i][0] + " = " + statsAtt[i][1], 11, (i+26)*size);
+            }
+        };
+    //slowBullet(20);
+    //targetPoint();
+    entity0stats();
+    //somestats();
+    };
+    
+    // Draw
+    draw = function() {
+        background (90, 104, 184);
+        entityExecAll();
+        towerExecAll();
+        bulletExecAll();
+        hitText();
+        //stats();
+        statsPage();
+    };
+    
+    // Mouse
+    mousePressed = function() {
+        if (statsButton.pressCheck()) {
+            statsButton.pressed();
+            drawWindow = true;
+        }
+        else if (statsClose) {
+            drawWindow = false;
+            statsClose = false;
+        }
+        else {
+            bullet.push(new Bullet(tower.x, tower.y, 3, 15, true));
+        }
+    };
+    
+    mouseReleased = function() {
+        statsButton.released();
+    };
+    
+
+};
+
+gameOverScreen = function() {
+    var a = 90;
+    var b = 104;
+    var c = 184;
+    
+    var gameOverText = function() {
+        background (constrain(a, 30, 90), constrain(b, 32, 104), constrain(c, 52, 184));
+        textAlign(CENTER, CENTER);
+        textSize(height*0.1);
+        textFont(createFont("Segoe Print"));
+        fill(175, 0, 0);
+        text(localization.gameOverText, width/2, height*2/5);
+        a--;
+        b -= 1.2;
+        c -= 2.2;
+    };
+        var tryAgainButton = new Button(width/2, height*11/20, 51, color(100, 182, 212), localization.tryAgainButton, "Segoe Print", color(0, 0, 0));
+        
+    mousePressed = function() {
+        if (tryAgainButton.pressCheck()) {
+			tryAgainButton.pressed();
+		}
+    };
+
+    mouseReleased = function() {
+        tryAgainButton.released();
+        if (tryAgainButton.pressCheck()) {
+            resetAndRun(mainGame);
+        }
+    };
+    
+    draw = function() {
+        gameOverText();
+        tryAgainButton.draw();
+    };
+};
+
+var resetAndRun = function(functionName) {
+    resetFunctions();
+    functionName();
+};
+
+resetAndRun(startScreen);
+		// ProgramCodeFinishesHere
+    }};
+
+    // Get the canvas that Processing-js will use
+    var canvas = document.getElementById("mycanvas"); 
+    // Pass the function sketchProc (defined in myCode.js) to Processing's constructor.
+    var processingInstance = new Processing(canvas, sketchProc); 
+ </script>
+
+</html>
