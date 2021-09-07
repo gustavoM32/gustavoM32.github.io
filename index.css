@@ -17,3 +17,31 @@ body {
 	border-color: #91b2ff;
 	background-color: #002aff;
 }
+
+a:link:not(.btn) {
+  text-decoration: none;
+}
+
+/* unvisited link */
+a:link:not(.btn) {
+  color: rgb(89, 0, 255);
+}
+
+/* visited link */
+a:visited:not(.btn) {
+  color: rgb(159, 107, 255);
+}
+
+/* mouse over link */
+a:hover:not(.btn) {
+  color: rgb(255, 105, 105);
+}
+
+/* selected link */
+a:active:not(.btn) {
+  color: rgb(255, 148, 162);
+}
+
+.link-row {
+	font-size: 2em;
+}
