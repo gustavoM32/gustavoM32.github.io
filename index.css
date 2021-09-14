@@ -1,5 +1,5 @@
 body {
-	background-color: #eeebff;
+	background-color: #ebf0ff;
 	color: #0a2757;
 	font-family: "Arial";
 }
@@ -10,12 +10,12 @@ body {
 }
 
 .card {
-	background-color: #b8cdff;
+	background-color: #d9e5fd;
 }
 
 .btn {
 	border-color: #91b2ff;
-	background-color: #002aff;
+	background-color: #0059ffc9;
 }
 
 a:link:not(.btn) {
@@ -24,12 +24,12 @@ a:link:not(.btn) {
 
 /* unvisited link */
 a:link:not(.btn) {
-  color: rgb(89, 0, 255);
+  color: rgb(0, 38, 255);
 }
 
 /* visited link */
 a:visited:not(.btn) {
-  color: rgb(159, 107, 255);
+  color: rgb(107, 147, 255);
 }
 
 /* mouse over link */
