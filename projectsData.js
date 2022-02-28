@@ -13,7 +13,7 @@ let projectsData = [
       },
       {
         "title": "InternaSUS",
-        "description": "It is a health dashboard developed by the group InterSCity inside my university. This groups builds technologies for smart cities, using the available data to make the city work more efficiently. I was granted a research scholarship to help the development of the plataform from 2020-2021.",
+        "description": "It is a health dashboard developed by the group InterSCity of my university. I was granted a research scholarship to help the development of the plataform in 2020-2021. The dashboard had to show more than a million hospitalization records from the Brazilian National Health Service dataset in a map and also had to allow the user to filter the data. I worked with Ruby On Rails, PostgreSQL, Node.js, jQuery, Jasmine, Cucumber, and Git in this project",
         "button": {
           "title": "Source code",
           "link": "https://gitlab.com/interscity/health-dashboard/internasus/-/tree/master"
