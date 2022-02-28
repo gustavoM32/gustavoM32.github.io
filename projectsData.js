@@ -12,11 +12,39 @@ let projectsData = [
         }
       },
       {
+        "title": "Finances app (Android Studio)",
+        "description": "The second version of a financial management app developed in the Mobile Computing class. Like in the previous version, I built a user login system, and retrieved and stored data from the OpenWeatherMap. Additionally, I included a map using the Maps SDK and allowed Firebase notifications in the app.",
+        "button": {
+          "title": "Source code",
+          "link": "https://github.com/gustavoM32/mac0463-finances"
+        }
+      },
+      {
+        "title": "Finances app (Expo)",
+        "description": "The first version of a financial management app developed in the Mobile Computing class. In this version I worked with React Native, built a user login system, and retrieved and stored data from the OpenWeatherMap.",
+        "button": {
+          "title": "Source code",
+          "link": "https://github.com/gustavoM32/mac0463-finances-2"
+        }
+      },
+      {
+        "title": "Digit classifier",
+        "description": "A Jupyter notebook made in the Machine Learning class with a friend. We worked with the MNIST datased and compared the ML algorithms Logistic Regression, Neural Networks, and Support Vector Machines. After appropriately separating the training data from validation and test data, we could choose the model for the Support Vector Machine as the best digit classifier, it reached 98.27% efficiency in the test data (using the f1-score). We used the scikit-learn, Numpy and Matplotlib libraries."
+      },
+      {
         "title": "InternaSUS",
         "description": "It is a health dashboard developed by the group InterSCity of my university. I was granted a research scholarship to help the development of the plataform in 2020-2021. The dashboard had to show more than a million hospitalization records from the Brazilian National Health Service dataset in a map and also had to allow the user to filter the data. I worked with Ruby On Rails, PostgreSQL, Node.js, jQuery, Jasmine, Cucumber, and Git in this project",
         "button": {
           "title": "Source code",
           "link": "https://gitlab.com/interscity/health-dashboard/internasus/-/tree/master"
+        }
+      },
+      {
+        "title": "SpaceWars",
+        "description": "A space shooter game developed in C with two other friends as a class project. We used a library developed by the teacher to draw in X11. My work consisted in simulating the objects motion, gravity, collision detection, and creating an AI to play against. You can find a video with a quick gameplay in the project README.md.",
+        "button": {
+          "title": "Source code",
+          "link": "https://github.com/gustavoM32/SpaceWars"
         }
       }
     ]
