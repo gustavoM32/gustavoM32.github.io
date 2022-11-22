@@ -3,6 +3,14 @@ let projectsData = [
     "title": "Recent projects",
     "description": "Projects I've worked on after I joined the university.",
     "projects": [
+    {
+        "title": "Capstone project - Competitive programming app",
+        "description": "My capstone project consists on developing an app to organize the study for competitive programming competitions.",
+        "button": {
+        "title": "Source code",
+        "link": "https://github.com/gustavoM32/competitive-programming-app"
+        }
+    },
       {
         "title": "Objetivos (Goals)",
         "description": "A personal project that helps me write about my goals and set to-dos to make progress in them. It was first written em C and then converted in C++. It was a great way for me to learn those languages. I started it in 2019 and it is still in continuous development.",
