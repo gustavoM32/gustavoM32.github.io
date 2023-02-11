@@ -20,7 +20,7 @@ let createProject = (project) => {
 };
 
 let createCategory = (category) => {
-  let categoryElement = $('<div class="container w-75">')
+  let categoryElement = $('<div class="container">')
     .append(`<h3>${category.title}</h3>`)
     .append(`<p>${category.description}</p>`)
     
