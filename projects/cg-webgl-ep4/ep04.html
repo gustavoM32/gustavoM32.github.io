@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <title>EP04</title>
+  <link rel="stylesheet" href="ep04.css">
+  <script src="https://www.ime.usp.br/~hitoshi/mac0420/libs/macWebglUtils.js"></script>
+  <script src="https://www.ime.usp.br/~hitoshi/mac0420/libs/MVnew.js"></script>
+
+  <script src="util.js"></script>
+
+  <script src="Config.js"></script>
+
+  <script src="Controle.js"></script>
+
+  <script src="Objeto.js"></script>
+  <script src="Cubo.js"></script>
+  <script src="Esfera.js"></script>
+  <script src="NaveObjeto.js"></script>
+  <script src="Esquema.js"></script>
+
+  <script src="Nave.js"></script>
+
+  <script src="ep04.js"></script>
+</head>
+
+<body>
+  <div style="margin-bottom: 10px;">
+    <button id="botaoExecutar">Executar</button>
+    <button id="botaoPasso">Passo</button>
+    <label for="tempoPasso">Tempo do passo (em segundos):</label>
+    <input type="number" id="tempoPasso" name="tempoPasso" value="1" step="0.001" min="0.001">
+    <button id="botaoExplode">Explode!</button>
+    <button id="botaoPara">Para</button>
+    <button id="botaoGravidade">Ativar gravidade</button>
+    <button id="botaoEnunciado">Ignorar enunciado</button>
+  </div>
+
+  <canvas id="glcanvas" width="800" height="650">
+    Opa! pode parece que seu navegador não suporta o canvas do HTML5.
+  </canvas>
+
+</body>
+
+</html>
